@@ -1,0 +1,122 @@
+{
+  "categories": [
+    { "name": "Fiction", "slug": "fiction" },
+    { "name": "Science", "slug": "science" },
+    { "name": "Programming", "slug": "programming" },
+    { "name": "History", "slug": "history" }
+  ],
+  "authors": [
+    {
+      "name": "George Orwell",
+      "bio": "English novelist and critic, known for dystopian fiction."
+    },
+    {
+      "name": "J.R.R. Tolkien",
+      "bio": "English writer and philologist, author of The Lord of the Rings."
+    },
+    {
+      "name": "Donald Knuth",
+      "bio": "Computer scientist, author of The Art of Computer Programming."
+    },
+    {
+      "name": "Robert Sapolsky",
+      "bio": "Neuroendocrinologist and primatologist at Stanford University."
+    },
+    {
+      "name": "Yuval Noah Harari",
+      "bio": "Historian and author of Sapiens and Homo Deus."
+    }
+  ],
+  "books": [
+    {
+      "title": "1984",
+      "isbn": "9780451524935",
+      "description": "A dystopian novel about totalitarianism and surveillance.",
+      "price": 9.99,
+      "publishedAt": "1949-06-08",
+      "author": "George Orwell",
+      "category": "fiction"
+    },
+    {
+      "title": "Animal Farm",
+      "isbn": "9780451526342",
+      "description": "An allegorical novella about a farm revolution gone wrong.",
+      "price": 8.99,
+      "publishedAt": "1945-08-17",
+      "author": "George Orwell",
+      "category": "fiction"
+    },
+    {
+      "title": "The Hobbit",
+      "isbn": "9780547928227",
+      "description": "Bilbo Baggins joins a quest to reclaim a dwarf kingdom.",
+      "price": 14.99,
+      "publishedAt": "1937-09-21",
+      "author": "J.R.R. Tolkien",
+      "category": "fiction"
+    },
+    {
+      "title": "The Fellowship of the Ring",
+      "isbn": "9780547928210",
+      "description": "The first volume of The Lord of the Rings.",
+      "price": 15.99,
+      "publishedAt": "1954-07-29",
+      "author": "J.R.R. Tolkien",
+      "category": "fiction"
+    },
+    {
+      "title": "The Two Towers",
+      "isbn": "9780547928203",
+      "description": "The second volume of The Lord of the Rings.",
+      "price": 15.99,
+      "publishedAt": "1954-11-11",
+      "author": "J.R.R. Tolkien",
+      "category": "fiction"
+    },
+    {
+      "title": "The Art of Computer Programming, Volume 1",
+      "isbn": "9780201896831",
+      "description": "Fundamental algorithms: the classic computer science treatise.",
+      "price": 79.99,
+      "publishedAt": "1968-01-01",
+      "author": "Donald Knuth",
+      "category": "programming"
+    },
+    {
+      "title": "Behave",
+      "isbn": "9781594205071",
+      "description": "The biology of humans at our best and worst.",
+      "price": 18.0,
+      "publishedAt": "2017-05-02",
+      "author": "Robert Sapolsky",
+      "category": "science"
+    },
+    {
+      "title": "Why Zebras Don't Get Ulcers",
+      "isbn": "9780805073690",
+      "description": "A guide to stress, stress-related diseases, and coping.",
+      "price": 16.5,
+      "publishedAt": "2004-09-01",
+      "author": "Robert Sapolsky",
+      "category": "science"
+    },
+    {
+      "title": "Sapiens",
+      "isbn": "9780062316097",
+      "description": "A brief history of humankind from the Stone Age to the present.",
+      "price": 24.99,
+      "publishedAt": "2015-02-10",
+      "author": "Yuval Noah Harari",
+      "category": "history"
+    },
+    {
+      "title": "Homo Deus",
+      "isbn": "9780062464316",
+      "description": "A look at humanity's future and the next stages of evolution.",
+      "price": 22.99,
+      "publishedAt": "2017-02-21",
+      "author": "Yuval Noah Harari",
+      "category": "history"
+    }
+  ]
+}
