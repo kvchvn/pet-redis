@@ -1,23 +1,12 @@
-type AppEnv = {
-  DATABASE_URL: string;
-  PORT: number;
-};
+import { z } from 'zod';
+
+export const envSchema = z.object({
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  PORT: z.coerce.number().int().positive().default(3001),
+});
+
+export type AppEnv = z.infer<typeof envSchema>;
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {
-  const databaseUrl = config.DATABASE_URL;
-
-  if (typeof databaseUrl !== 'string' || databaseUrl.trim() === '') {
-    throw new Error('DATABASE_URL is required');
-  }
-
-  const parsedPort = config.PORT === undefined ? 3000 : Number(config.PORT);
-
-  if (Number.isNaN(parsedPort) || parsedPort <= 0) {
-    throw new Error('PORT must be a positive number');
-  }
-
-  return {
-    DATABASE_URL: databaseUrl,
-    PORT: parsedPort,
-  };
+  return envSchema.parse(config);
 }

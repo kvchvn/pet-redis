@@ -1,19 +1,13 @@
-import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { AppModule } from './app.module.js';
+import { cleanupOpenApiDoc, ZodValidationPipe } from 'nestjs-zod';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  app.useGlobalPipes(new ZodValidationPipe());
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Bookstore API')
@@ -22,7 +16,7 @@ async function bootstrap() {
     .build();
 
   const documentFactory = () =>
-    SwaggerModule.createDocument(app, swaggerConfig);
+    cleanupOpenApiDoc(SwaggerModule.createDocument(app, swaggerConfig));
   SwaggerModule.setup('docs', app, documentFactory);
 
   const config = app.get(ConfigService);
