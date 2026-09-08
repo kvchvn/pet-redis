@@ -6,7 +6,7 @@ export const createBookSchema = z.object({
   isbn: z.string().min(1),
   description: z.string().optional(),
   price: z.number().nonnegative(),
-  publishedAt: z.coerce.date().optional(),
+  publishedAt: z.iso.date().optional(),
   authorId: z.uuid(),
   categoryId: z.uuid(),
 });

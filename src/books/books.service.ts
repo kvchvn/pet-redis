@@ -43,7 +43,7 @@ export class BooksService {
         isbn: dto.isbn,
         description: dto.description,
         price: dto.price,
-        publishedAt: dto.publishedAt,
+        publishedAt: dto.publishedAt ? new Date(dto.publishedAt) : undefined,
         authorId: dto.authorId,
         categoryId: dto.categoryId,
       },
@@ -68,6 +68,8 @@ export class BooksService {
       where: { id },
       data: {
         ...dto,
+        publishedAt:
+          dto.publishedAt !== undefined ? new Date(dto.publishedAt) : undefined,
       },
       include: bookInclude,
     });
