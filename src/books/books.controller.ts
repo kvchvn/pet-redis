@@ -9,8 +9,11 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Res,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
+import { BOOKS_LIST_CACHE_HEADER } from './books.cache';
 import { BooksService } from './books.service';
 import { CreateBookDto, UpdateBookDto } from './dto/book.dto';
 
@@ -20,9 +23,14 @@ export class BooksController {
   constructor(private readonly booksService: BooksService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List all books with author and category' })
-  findAll() {
-    return this.booksService.findAll();
+  @ApiOperation({
+    summary: 'List all books with author and category',
+    description: 'Sets X-Cache to HIT or MISS for the Redis list cache.',
+  })
+  async findAll(@Res({ passthrough: true }) res: Response) {
+    const { books, cache } = await this.booksService.findAll();
+    res.setHeader(BOOKS_LIST_CACHE_HEADER, cache);
+    return books;
   }
 
   @Get(':id')

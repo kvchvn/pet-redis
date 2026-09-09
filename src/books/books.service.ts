@@ -7,10 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache/cache.service';
 import { AppEnv } from '../config/env.validation';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  BOOKS_LIST_CACHE_KEY,
-  BOOKS_LIST_CACHE_MISS_DELAY_MS,
-} from './books.cache';
+import { BOOKS_LIST_CACHE_KEY, BooksListCacheStatus } from './books.cache';
 import { bookInclude, BookResponse, toBookResponse } from './books.mapper';
 import { CreateBookDto, UpdateBookDto } from './dto/book.dto';
 
@@ -22,17 +19,16 @@ export class BooksService {
     private readonly config: ConfigService<AppEnv, true>,
   ) {}
 
-  async findAll() {
+  async findAll(): Promise<{
+    books: BookResponse[];
+    cache: BooksListCacheStatus;
+  }> {
     const cached =
       await this.cache.getJson<BookResponse[]>(BOOKS_LIST_CACHE_KEY);
 
     if (cached) {
-      return cached;
+      return { books: cached, cache: 'HIT' };
     }
-
-    await new Promise((resolve) =>
-      setTimeout(resolve, BOOKS_LIST_CACHE_MISS_DELAY_MS),
-    );
 
     const books = await this.prisma.book.findMany({
       include: bookInclude,
@@ -46,7 +42,7 @@ export class BooksService {
       this.config.get('BOOKS_CACHE_TTL_SECONDS', { infer: true }),
     );
 
-    return response;
+    return { books: response, cache: 'MISS' };
   }
 
   async findOne(id: string) {
