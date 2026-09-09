@@ -3,6 +3,8 @@ import { z } from 'zod';
 export const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   PORT: z.coerce.number().int().positive().default(3001),
+  REDIS_URL: z.url().min(1, 'REDIS_URL is required'),
+  BOOKS_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
