@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache/cache.service';
 import { AppEnv } from '../config/env.validation';
+import { EventsService } from '../events/events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BOOKS_LIST_CACHE_KEY, BooksListCacheStatus } from './books.cache';
 import { bookInclude, BookResponse, toBookResponse } from './books.mapper';
@@ -16,6 +17,7 @@ export class BooksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly events: EventsService,
     private readonly config: ConfigService<AppEnv, true>,
   ) {}
 
@@ -76,6 +78,7 @@ export class BooksService {
     });
 
     await this.invalidateListCache();
+    await this.events.emit({ type: 'book.created', bookId: book.id });
 
     return toBookResponse(book);
   }
@@ -102,6 +105,7 @@ export class BooksService {
     });
 
     await this.invalidateListCache();
+    await this.events.emit({ type: 'book.updated', bookId: book.id });
 
     return toBookResponse(book);
   }
@@ -110,6 +114,7 @@ export class BooksService {
     await this.findOne(id);
     await this.prisma.book.delete({ where: { id } });
     await this.invalidateListCache();
+    await this.events.emit({ type: 'book.deleted', bookId: id });
   }
 
   private async invalidateListCache() {

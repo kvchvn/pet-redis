@@ -5,6 +5,7 @@ import { BooksModule } from './books/books.module';
 import { CacheModule } from './cache/cache.module';
 import { CategoriesModule } from './categories/categories.module';
 import { validateEnv } from './config/env.validation';
+import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -17,6 +18,7 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     PrismaModule,
     CacheModule,
+    EventsModule,
     HealthModule,
     AuthorsModule,
     CategoriesModule,

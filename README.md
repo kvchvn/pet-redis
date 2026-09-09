@@ -2,6 +2,15 @@
 
 A Nest.js book catalog (authors, categories, book CRUD) with Prisma and local PostgreSQL.
 
+## Contents
+
+- [Requirements](#requirements)
+- [Database connection](#database-connection)
+- [Run](#run)
+- [Run with Docker](#run-with-docker)
+- [Book events](#book-events)
+  - [Check it](#check-it)
+
 ## Requirements
 
 - Node.js 22+
@@ -141,3 +150,39 @@ docker compose down -v
 ```
 
 After `docker compose down -v`, run migrations and seed again before starting the API.
+
+## Book events
+
+After a book is created, updated, or deleted, the API writes the same event to two Redis features:
+
+- **Stream** (`XADD` / `XREVRANGE`) — a journal. Read it as JSON. It survives an API restart.
+- **Pub/Sub** (`PUBLISH` / `SUBSCRIBE`) — a live channel. New SSE clients only see events from the moment they connect.
+
+The list cache on `GET /books` is unchanged. If Redis is down, book CRUD still succeeds; the event is logged and skipped.
+
+Stream key and Pub/Sub channel are both named `books:events`. That is not a clash: a stream is a key (visible in `KEYS` / `XRANGE`), a channel is not.
+
+Payload:
+
+```json
+{ "type": "book.created", "bookId": "<uuid>", "at": "<ISO-8601>" }
+```
+
+`type` is `book.created` | `book.updated` | `book.deleted`. The journal also adds Redis Stream `id` (for example `"1715...-0"`). The stream is trimmed with `MAXLEN ~ 1000`.
+
+### Check it
+
+1. Open a browser tab: [http://localhost:3001/books/events/live](http://localhost:3001/books/events/live). It stays pending, `Content-Type: text/event-stream`.
+2. Create, patch, or delete a book in [Swagger](http://localhost:3001/docs) (or with `curl`).
+3. The SSE tab should print `data: {...}`. The API log also shows the Pub/Sub payload even with no SSE client.
+4. [http://localhost:3001/books/events](http://localhost:3001/books/events) returns the same event as JSON (`?limit=` defaults to 20, max 100).
+5. Restart the API. The journal is still there; the live tab has already forgotten past events.
+
+Optional Redis CLI:
+
+```bash
+docker compose exec redis redis-cli XREVRANGE books:events + - COUNT 5
+docker compose exec redis redis-cli SUBSCRIBE books:events
+```
+
+`SUBSCRIBE` occupies that `redis-cli` session until you Ctrl+C. Mutate a book in another window to see the published JSON.
