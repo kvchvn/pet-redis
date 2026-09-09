@@ -19,7 +19,7 @@ describe('Health (e2e)', () => {
     return request(app.getHttpServer())
       .get('/health')
       .expect(200)
-      .expect({ postgres: 'up' });
+      .expect({ postgres: 'up', redis: 'up' });
   });
 
   afterEach(async () => {

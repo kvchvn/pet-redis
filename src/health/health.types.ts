@@ -1,5 +1,6 @@
-export type PostgresStatus = 'up' | 'down';
+export type DependencyStatus = 'up' | 'down';
 
 export type HealthCheck = {
-  postgres: PostgresStatus;
+  postgres: DependencyStatus;
+  redis: DependencyStatus;
 };

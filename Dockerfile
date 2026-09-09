@@ -5,7 +5,7 @@ WORKDIR /app
 FROM base AS deps
 
 COPY package*.json ./
-RUN npm ci
+RUN npm i
 
 FROM deps AS tools
 
@@ -24,7 +24,7 @@ FROM base AS production
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm i --omit=dev && npm cache clean --force
 
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client

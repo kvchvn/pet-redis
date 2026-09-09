@@ -3,21 +3,50 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../cache/cache.service';
+import { AppEnv } from '../config/env.validation';
 import { PrismaService } from '../prisma/prisma.service';
-import { bookInclude, toBookResponse } from './books.mapper';
+import {
+  BOOKS_LIST_CACHE_KEY,
+  BOOKS_LIST_CACHE_MISS_DELAY_MS,
+} from './books.cache';
+import { bookInclude, BookResponse, toBookResponse } from './books.mapper';
 import { CreateBookDto, UpdateBookDto } from './dto/book.dto';
 
 @Injectable()
 export class BooksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+    private readonly config: ConfigService<AppEnv, true>,
+  ) {}
 
   async findAll() {
+    const cached =
+      await this.cache.getJson<BookResponse[]>(BOOKS_LIST_CACHE_KEY);
+
+    if (cached) {
+      return cached;
+    }
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, BOOKS_LIST_CACHE_MISS_DELAY_MS),
+    );
+
     const books = await this.prisma.book.findMany({
       include: bookInclude,
       orderBy: { title: 'asc' },
     });
 
-    return books.map(toBookResponse);
+    const response = books.map(toBookResponse);
+    await this.cache.setJson(
+      BOOKS_LIST_CACHE_KEY,
+      response,
+      this.config.get('BOOKS_CACHE_TTL_SECONDS', { infer: true }),
+    );
+
+    return response;
   }
 
   async findOne(id: string) {
@@ -50,6 +79,8 @@ export class BooksService {
       include: bookInclude,
     });
 
+    await this.invalidateListCache();
+
     return toBookResponse(book);
   }
 
@@ -74,12 +105,19 @@ export class BooksService {
       include: bookInclude,
     });
 
+    await this.invalidateListCache();
+
     return toBookResponse(book);
   }
 
   async remove(id: string) {
     await this.findOne(id);
     await this.prisma.book.delete({ where: { id } });
+    await this.invalidateListCache();
+  }
+
+  private async invalidateListCache() {
+    await this.cache.del(BOOKS_LIST_CACHE_KEY);
   }
 
   // Manual check to show more detailed error message

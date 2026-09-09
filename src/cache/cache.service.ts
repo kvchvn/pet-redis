@@ -42,6 +42,10 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async ping(): Promise<void> {
+    await this.redis.ping();
+  }
+
   async getJson<T>(key: string): Promise<T | null> {
     try {
       const raw = await this.redis.get(key);
