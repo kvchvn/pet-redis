@@ -12,6 +12,9 @@ services:
       BOOKS_CACHE_TTL_SECONDS: ${BOOKS_CACHE_TTL_SECONDS:-60}
       THROTTLE_TTL_SECONDS: ${THROTTLE_TTL_SECONDS:-60}
       THROTTLE_LIMIT: ${THROTTLE_LIMIT:-30}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    labels:
+      logging: promtail
     ports:
       - '${PORT:-3001}:${PORT:-3001}'
     depends_on:
@@ -78,5 +81,61 @@ services:
       timeout: 5s
       retries: 10
 
+  prometheus:
+    image: prom/prometheus:v3.4.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./observability/prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - '9090:9090'
+    depends_on:
+      - api
+
+  loki:
+    image: grafana/loki:3.4.2
+    user: '0'
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./observability/loki-config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    ports:
+      - '3100:3100'
+
+  promtail:
+    image: grafana/promtail:3.4.2
+    user: root
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./observability/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_positions:/tmp
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_METRICS_ENABLED: 'false'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - '3000:3000'
+    depends_on:
+      - prometheus
+      - loki
+
 volumes:
   postgres_data:
+  prometheus_data:
+  loki_data:
+  promtail_positions:
+  grafana_data:

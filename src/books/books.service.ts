@@ -4,9 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import { Counter } from 'prom-client';
 import { CacheService } from '../cache/cache.service';
 import { AppEnv } from '../config/env.validation';
 import { EventsService } from '../events/events.service';
+import { CACHE_REQUESTS_TOTAL } from '../metrics/metrics.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { BOOKS_LIST_CACHE_KEY, BooksListCacheStatus } from './books.cache';
 import { bookInclude, BookResponse, toBookResponse } from './books.mapper';
@@ -19,6 +22,8 @@ export class BooksService {
     private readonly cache: CacheService,
     private readonly events: EventsService,
     private readonly config: ConfigService<AppEnv, true>,
+    @InjectMetric(CACHE_REQUESTS_TOTAL)
+    private readonly cacheRequests: Counter<string>,
   ) {}
 
   async findAll(): Promise<{
@@ -29,6 +34,7 @@ export class BooksService {
       await this.cache.getJson<BookResponse[]>(BOOKS_LIST_CACHE_KEY);
 
     if (cached) {
+      this.cacheRequests.inc({ result: 'hit' });
       return { books: cached, cache: 'HIT' };
     }
 
@@ -44,6 +50,7 @@ export class BooksService {
       this.config.get('BOOKS_CACHE_TTL_SECONDS', { infer: true }),
     );
 
+    this.cacheRequests.inc({ result: 'miss' });
     return { books: response, cache: 'MISS' };
   }
 

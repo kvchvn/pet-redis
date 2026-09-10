@@ -9,6 +9,8 @@ A Nest.js book catalog (authors, categories, book CRUD) with Prisma and local Po
 - [Run](#run)
 - [Run with Docker](#run-with-docker)
 - [Rate limit](#rate-limit)
+- [Observability](#observability)
+  - [Check it](#check-it-1)
 - [Book events](#book-events)
   - [Check it](#check-it)
 
@@ -35,6 +37,7 @@ REDIS_PORT=6379
 BOOKS_CACHE_TTL_SECONDS=60
 THROTTLE_TTL_SECONDS=60
 THROTTLE_LIMIT=30
+LOG_LEVEL=info
 ```
 
 If the `bookstore` database does not exist yet, `npm run migrate` usually creates it. Prisma creates the tables; do not write SQL by hand.
@@ -59,11 +62,12 @@ These commands are separate:
 App: http://localhost:3001  
 Health: http://localhost:3001/health  
 Books: http://localhost:3001/books  
+Metrics: http://localhost:3001/metrics  
 Swagger: http://localhost:3001/docs
 
 ## Run with Docker
 
-Docker runs the Nest.js app, PostgreSQL, and Redis in containers.
+Docker runs the Nest.js app, PostgreSQL, Redis, Prometheus, Loki, Promtail, and Grafana in containers.
 
 Requirements:
 
@@ -82,6 +86,7 @@ REDIS_PORT=6379
 BOOKS_CACHE_TTL_SECONDS=60
 THROTTLE_TTL_SECONDS=60
 THROTTLE_LIMIT=30
+LOG_LEVEL=info
 ```
 
 `DATABASE_URL` in `.env` uses `localhost` and is useful for local npm commands. Inside Docker Compose, the API, migration, and seed containers override `DATABASE_URL` with a container URL that uses `postgres` as the host name, because containers talk to each other by service name.
@@ -116,6 +121,12 @@ Start the API (Nest.js app):
 docker compose up -d api
 ```
 
+Start the API together with Prometheus, Loki, Promtail, and Grafana:
+
+```bash
+docker compose up -d --build
+```
+
 Check that the services are running:
 
 ```bash
@@ -132,15 +143,10 @@ curl "http://localhost:3001/books"
 App: http://localhost:3001  
 Health: http://localhost:3001/health  
 Books: http://localhost:3001/books  
-Swagger: http://localhost:3001/docs
-
-View logs:
-
-```bash
-docker compose logs api
-docker compose logs postgres
-docker compose logs redis
-```
+Metrics: http://localhost:3001/metrics  
+Swagger: http://localhost:3001/docs  
+Grafana: http://localhost:3000 (admin / admin)  
+Prometheus: http://localhost:9090
 
 Stop containers without deleting database data:
 
@@ -148,7 +154,7 @@ Stop containers without deleting database data:
 docker compose down
 ```
 
-Reset containers and delete the PostgreSQL volume:
+Reset containers and delete volumes (Postgres, Prometheus, Loki, Grafana):
 
 ```bash
 docker compose down -v
@@ -158,9 +164,41 @@ After `docker compose down -v`, run migrations and seed again before starting th
 
 ## Rate limit
 
-The API allows **30 requests per minute per IP** (`THROTTLE_LIMIT` / `THROTTLE_TTL_SECONDS`). The 31st request in that window gets `429 Too Many Requests`. The counter lives in the API process (not Redis), so a restart resets it.
+The API allows **30 requests per minute per IP** (`THROTTLE_LIMIT` / `THROTTLE_TTL_SECONDS`). The 31st request in that window gets `429 Too Many Requests`.
 
-`GET /health` is excluded, so probes do not eat the quota. Swagger and the catalog routes count.
+`GET /health` and `GET /metrics` are excluded and don't spend the quota.
+
+## Observability
+
+The API writes JSON logs (Pino) and exposes numbers at `GET /metrics`. Grafana is the UI. Prometheus stores the numbers. Loki stores the logs. Promtail copies API container logs into Loki.
+
+`GET /health` does not check Grafana, Prometheus, or Loki. The catalog works without them.
+
+Ports:
+
+- `3001` — Bookstore API (`/books`, `/health`, `/metrics`, `/docs`)
+- `3000` — Grafana UI only. Grafana also has its own `/metrics`; that is not the catalog.
+- `9090` — Prometheus UI (targets and raw queries)
+
+`npm run start:dev` gives Pino and `/metrics` only. Prometheus, Loki, and Grafana run in Docker Compose.
+
+On Docker Desktop (including Windows) Promtail reads container logs through `/var/run/docker.sock`.
+
+### Check it
+
+1. Start the stack: `docker compose up -d`.
+2. Open dashboard [http://localhost:3000/d/bookstore-api](http://localhost:3000/d/bookstore-api) and sign in as `admin` / `admin`.
+3. Call the API a few times:
+
+```bash
+curl -D - "http://localhost:3001/books"
+```
+
+The response includes `X-Request-Id`. Repeat `/books` to see cache `HIT` vs `MISS` (`X-Cache` header). Create, patch, or delete a book to move the book-events panel.
+
+4. [http://localhost:3001/metrics](http://localhost:3001/metrics) should contain `http_requests_total`, `bookstore_cache_requests_total`, and `bookstore_book_events_total`.
+5. Prometheus targets: [http://localhost:9090/targets](http://localhost:9090/targets) — job `bookstore-api` should be UP.
+6. Grafana logs panel: `{service="api"}`. To find one request: `{service="api"} |= "<the X-Request-Id>"`.
 
 ## Book events
 

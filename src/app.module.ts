@@ -11,6 +11,7 @@ import { AppEnv, validateEnv } from './config/env.validation';
 import { createPinoParams } from './config/pino';
 import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
+import { MetricsModule } from './metrics/metrics.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -36,6 +37,7 @@ import { PrismaModule } from './prisma/prisma.module';
         ],
       }),
     }),
+    MetricsModule,
     PrismaModule,
     CacheModule,
     EventsModule,

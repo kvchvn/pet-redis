@@ -5,9 +5,12 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import Redis from 'ioredis';
+import { Counter } from 'prom-client';
 import { Observable, Subject } from 'rxjs';
 import { AppEnv } from '../config/env.validation';
+import { BOOK_EVENTS_TOTAL } from '../metrics/metrics.constants';
 import {
   BOOKS_EVENTS_CHANNEL,
   BOOKS_EVENTS_DEFAULT_LIMIT,
@@ -24,7 +27,11 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
   private readonly subscriber: Redis;
   private readonly events$ = new Subject<BookEvent>();
 
-  constructor(private readonly config: ConfigService<AppEnv, true>) {
+  constructor(
+    private readonly config: ConfigService<AppEnv, true>,
+    @InjectMetric(BOOK_EVENTS_TOTAL)
+    private readonly bookEvents: Counter<string>,
+  ) {
     const redisUrl = this.config.get('REDIS_URL', { infer: true });
     const redisOptions = {
       maxRetriesPerRequest: 1,
@@ -91,6 +98,7 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
         event.at,
       );
       await this.command.publish(BOOKS_EVENTS_CHANNEL, JSON.stringify(event));
+      this.bookEvents.inc({ type: event.type });
     } catch (error: unknown) {
       this.logFailure('emit', error);
     }

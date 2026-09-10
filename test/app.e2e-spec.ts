@@ -1,12 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { register } from 'prom-client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
 describe('Health (e2e)', () => {
   let app: INestApplication;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -22,7 +23,8 @@ describe('Health (e2e)', () => {
       .expect({ postgres: 'up', redis: 'up' });
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
+    register.clear();
   });
 });
