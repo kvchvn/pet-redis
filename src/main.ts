@@ -1,12 +1,14 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 import { cleanupOpenApiDoc, ZodValidationPipe } from 'nestjs-zod';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
 
   app.useGlobalPipes(new ZodValidationPipe());
   app.useGlobalFilters(new PrismaExceptionFilter());

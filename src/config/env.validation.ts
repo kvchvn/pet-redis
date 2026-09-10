@@ -7,6 +7,9 @@ export const envSchema = z.object({
   BOOKS_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   THROTTLE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(30),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
+    .default('info'),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
