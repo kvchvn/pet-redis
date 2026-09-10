@@ -8,6 +8,7 @@ A Nest.js book catalog (authors, categories, book CRUD) with Prisma and local Po
 - [Database connection](#database-connection)
 - [Run](#run)
 - [Run with Docker](#run-with-docker)
+- [Rate limit](#rate-limit)
 - [Book events](#book-events)
   - [Check it](#check-it)
 
@@ -32,6 +33,8 @@ POSTGRES_PASSWORD=YOUR_PASSWORD
 POSTGRES_PORT=5432
 REDIS_PORT=6379
 BOOKS_CACHE_TTL_SECONDS=60
+THROTTLE_TTL_SECONDS=60
+THROTTLE_LIMIT=30
 ```
 
 If the `bookstore` database does not exist yet, `npm run migrate` usually creates it. Prisma creates the tables; do not write SQL by hand.
@@ -77,6 +80,8 @@ POSTGRES_PASSWORD=postgres
 POSTGRES_PORT=5432
 REDIS_PORT=6379
 BOOKS_CACHE_TTL_SECONDS=60
+THROTTLE_TTL_SECONDS=60
+THROTTLE_LIMIT=30
 ```
 
 `DATABASE_URL` in `.env` uses `localhost` and is useful for local npm commands. Inside Docker Compose, the API, migration, and seed containers override `DATABASE_URL` with a container URL that uses `postgres` as the host name, because containers talk to each other by service name.
@@ -150,6 +155,12 @@ docker compose down -v
 ```
 
 After `docker compose down -v`, run migrations and seed again before starting the API.
+
+## Rate limit
+
+The API allows **30 requests per minute per IP** (`THROTTLE_LIMIT` / `THROTTLE_TTL_SECONDS`). The 31st request in that window gets `429 Too Many Requests`. The counter lives in the API process (not Redis), so a restart resets it.
+
+`GET /health` is excluded, so probes do not eat the quota. Swagger and the catalog routes count.
 
 ## Book events
 

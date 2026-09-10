@@ -5,6 +5,8 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   REDIS_URL: z.url().min(1, 'REDIS_URL is required'),
   BOOKS_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+  THROTTLE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+  THROTTLE_LIMIT: z.coerce.number().int().positive().default(30),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

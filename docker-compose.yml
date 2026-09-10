@@ -10,6 +10,8 @@ services:
       PORT: ${PORT:-3001}
       REDIS_URL: redis://redis:${REDIS_PORT:-6379}
       BOOKS_CACHE_TTL_SECONDS: ${BOOKS_CACHE_TTL_SECONDS:-60}
+      THROTTLE_TTL_SECONDS: ${THROTTLE_TTL_SECONDS:-60}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-30}
     ports:
       - '${PORT:-3001}:${PORT:-3001}'
     depends_on:
