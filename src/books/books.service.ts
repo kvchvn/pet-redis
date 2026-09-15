@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter } from 'prom-client';
 import { CacheService } from '../cache/cache.service';
@@ -68,20 +69,22 @@ export class BooksService {
   }
 
   async create(dto: CreateBookDto) {
-    await this.ensureAuthorExists(dto.authorId);
-    await this.ensureCategoryExists(dto.categoryId);
+    const book = await this.prisma.$transaction(async (tx) => {
+      await this.ensureAuthorExists(dto.authorId, tx);
+      await this.ensureCategoryExists(dto.categoryId, tx);
 
-    const book = await this.prisma.book.create({
-      data: {
-        title: dto.title,
-        isbn: dto.isbn,
-        description: dto.description,
-        price: dto.price,
-        publishedAt: dto.publishedAt ? new Date(dto.publishedAt) : undefined,
-        authorId: dto.authorId,
-        categoryId: dto.categoryId,
-      },
-      include: bookInclude,
+      return tx.book.create({
+        data: {
+          title: dto.title,
+          isbn: dto.isbn,
+          description: dto.description,
+          price: dto.price,
+          publishedAt: dto.publishedAt ? new Date(dto.publishedAt) : undefined,
+          authorId: dto.authorId,
+          categoryId: dto.categoryId,
+        },
+        include: bookInclude,
+      });
     });
 
     await this.invalidateListCache();
@@ -91,24 +94,32 @@ export class BooksService {
   }
 
   async update(id: string, dto: UpdateBookDto) {
-    await this.findOne(id);
+    const book = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.book.findUnique({ where: { id } });
 
-    if (dto.authorId) {
-      await this.ensureAuthorExists(dto.authorId);
-    }
+      if (!existing) {
+        throw new NotFoundException(`Book ${id} not found`);
+      }
 
-    if (dto.categoryId) {
-      await this.ensureCategoryExists(dto.categoryId);
-    }
+      if (dto.authorId) {
+        await this.ensureAuthorExists(dto.authorId, tx);
+      }
 
-    const book = await this.prisma.book.update({
-      where: { id },
-      data: {
-        ...dto,
-        publishedAt:
-          dto.publishedAt !== undefined ? new Date(dto.publishedAt) : undefined,
-      },
-      include: bookInclude,
+      if (dto.categoryId) {
+        await this.ensureCategoryExists(dto.categoryId, tx);
+      }
+
+      return tx.book.update({
+        where: { id },
+        data: {
+          ...dto,
+          publishedAt:
+            dto.publishedAt !== undefined
+              ? new Date(dto.publishedAt)
+              : undefined,
+        },
+        include: bookInclude,
+      });
     });
 
     await this.invalidateListCache();
@@ -129,8 +140,11 @@ export class BooksService {
   }
 
   // Manual check to show more detailed error message
-  private async ensureAuthorExists(authorId: string) {
-    const author = await this.prisma.author.findUnique({
+  private async ensureAuthorExists(
+    authorId: string,
+    db: Prisma.TransactionClient,
+  ) {
+    const author = await db.author.findUnique({
       where: { id: authorId },
     });
 
@@ -140,8 +154,11 @@ export class BooksService {
   }
 
   // Manual check to show more detailed error message
-  private async ensureCategoryExists(categoryId: string) {
-    const category = await this.prisma.category.findUnique({
+  private async ensureCategoryExists(
+    categoryId: string,
+    db: Prisma.TransactionClient,
+  ) {
+    const category = await db.category.findUnique({
       where: { id: categoryId },
     });
 
